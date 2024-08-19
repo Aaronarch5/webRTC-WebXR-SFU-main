@@ -1,0 +1,71 @@
+body {
+    background-color: #B95B5B;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    background-color: #4F4E4E;
+    color: #EDEDED;
+    padding: 20px;
+    margin: 0;
+}
+
+button {
+    background-color: #FFFFFF;
+    border: 2px solid #4F4E4E;
+    border-radius: 20px;
+    color: #4F4E4E;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+button:hover {
+    background-color: #4F4E4E;
+    color: #FFFFFF;
+}
+
+#video {
+    margin-top: 20px;
+    border: 5px solid #4F4E4E;
+    width: 70%;
+    max-width: 500px;
+    border-radius: 10px;
+}
+
+.select-container {
+    margin: 20px auto;
+    width: fit-content;
+}
+
+.cute-select {
+    background-color: #FFFFFF;
+    border: 2px solid #4F4E4E;
+    border-radius: 20px;
+    padding: 10px;
+    font-size: 16px;
+    color: #4F4E4E;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    text-align: center;
+    width: 200px;
+    transition: background-color 0.3s, color 0.3s;
+    cursor: pointer;
+}
+
+.cute-select:hover {
+    background-color: #4F4E4E;
+    color: #FFFFFF;
+}
+
+.cute-select option {
+    background-color: #FFFFFF;
+    color: #4F4E4E;
+}

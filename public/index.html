@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src='index.js'></script>
+</head>
+<body>
+    <h1>Endoscope Host</h1>
+    <button id='toggle-instructions'>Show/Hide Instructions</button>
+    <div id='instructions' style='display: none;'>
+        <p>1. Connect the USB endoscope to the computer.</p>
+        <p>2. To start streaming the endoscope camera, click the button "Start Streaming".</p>
+    </div>
+    <br>
+    <video autoplay id="video"></video>
+    <button id='my-button'>Start Streaming</button>
+    <div class="select-container">
+        <select id="camera-select" class="cute-select"></select>
+    </div>
+</body>
+</html>
