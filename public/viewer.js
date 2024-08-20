@@ -6,7 +6,6 @@ import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/js
 window.onload = () => {
     document.getElementById('my-button').onclick = () => {
         init();
-        
     };
 }
 
@@ -110,10 +109,10 @@ function createSceneWithVideoTexture(video) {
     ];
 
     // Create a cube geometry and apply the materials
-    const geometry = new THREE.BoxGeometry(4, 2, 0.1);
+    let geometry = new THREE.BoxGeometry(4, 2, 0.1);
     const cube = new THREE.Mesh(geometry, materials);
     scene.add(cube);
-    cube.position.set(0, 1.7-1.7, -1.5);
+    cube.position.set(0, 1.7 - 1.7, -1);
 
     // Position the camera
     camera.position.set(2, 2, 2);
@@ -132,14 +131,18 @@ function createSceneWithVideoTexture(video) {
     });
 
     // Setup WebXR controllers
-    const controller1 = renderer.xr.getController(0);
-    controller1.addEventListener('selectstart', onSelectStart);
-    controller1.addEventListener('selectend', onSelectEnd);
+    const controller1 = renderer.xr.getController(0); // Left controller
+    const controller2 = renderer.xr.getController(1); // Right controller
+
+    let scale = 1.0;
+    const scaleFactor = 0.1; // Amount of scaling per trigger press
+
+    controller1.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
+    controller1.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
     scene.add(controller1);
 
-    const controller2 = renderer.xr.getController(1);
-    controller2.addEventListener('selectstart', onSelectStart);
-    controller2.addEventListener('selectend', onSelectEnd);
+    controller2.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
+    controller2.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
     scene.add(controller2);
 
     const controllerModelFactory = new XRControllerModelFactory();
@@ -152,12 +155,19 @@ function createSceneWithVideoTexture(video) {
     controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
     scene.add(controllerGrip2);
 
-    function onSelectStart(event) {
-        // Add code to handle the select start event
+    function onSelectStart(event, hand) {
+        // Start scaling on trigger press
+        if (hand === 'left') {
+            scale += scaleFactor;
+        } else if (hand === 'right') {
+            scale -= scaleFactor;
+        }
+        if (scale < 0.1) scale = 0.1; // Prevent scale from going negative or zero
+        cube.scale.set(scale, scale, scale); // Apply scaling
     }
 
-    function onSelectEnd(event) {
-        // Add code to handle the select end event
+    function onSelectEnd(event, hand) {
+        // Optionally handle the end of the trigger press
     }
 
     // Render the scene
