@@ -3,14 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viewer</title>
+    <title>Robotic Assistant for Endoscopic Procedures</title>
+    <link rel="stylesheet" href="viewer.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
-    <!-- Load viewer.js as a module -->
-    <script type="module" src="viewer.js"></script>  
+    <script type="module" src="viewer.js"></script>
 </head>
 <body>
-    <h1>Viewer</h1>
-    <video autoplay id='video'></video>
-    <button id="my-button">View Stream</button>
+    <div class="container">
+        <div class="overlay">
+            <h1>ROBOTIC ASSISTANT FOR ENDOSCOPIC PROCEDURES</h1>
+            <div class="instructions">
+                <p>INSTRUCTIONS:</p>
+                <ol>
+                    <li>CLICK THE VIEW STREAMING BUTTON</li>
+                    <li>CLICK THE START XR BUTTON</li>
+                    <li>USE YOUR META QUEST TO CONTROL</li>
+                </ol>
+            </div>
+            <button id="my-button">View Stream</button>
+        </div>
+    </div>
+    <video autoplay id='video' style="display: none;"></video>
 </body>
 </html>
