@@ -112,7 +112,7 @@ function createSceneWithVideoTexture(video) {
     let geometry = new THREE.BoxGeometry(4, 2, 0.1);
     const cube = new THREE.Mesh(geometry, materials);
     scene.add(cube);
-    cube.position.set(0, 1.7 - 1.7, -1);
+    cube.position.set(0, 0, -1.5);
 
     // Position the camera
     camera.position.set(2, 2, 2);
