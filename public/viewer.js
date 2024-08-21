@@ -19,9 +19,30 @@ async function init() {
 function createPeer() {
     const peer = new RTCPeerConnection({
         iceServers: [
+            { urls: "stun:stun.stunprotocol.org" },
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls:"stun:stun.relay.metered.ca:80"},
+            {   urls:"turn:global.relay.metered.ca:80",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
             {
-                urls: "stun:stun.stunprotocol.org"
+                urls:"turn:global.relay.metered.ca:80?transport=tcp",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
+            {
+                urls:"turn:global.relay.metered.ca:443",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
+            {urls:"turns:global.relay.metered.ca:443?transport=tcp",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
+            {
+                urls: "turn:aaronarch1.metered.live",  // URL del servidor TURN
+                username: "a983dce89aeea887f64b69b7",  // Tu nombre de usuario del servidor TURN
+                credential: "Y5NP897GSYJxs6RV"  // Tu contraseña del servidor TURN
             }
+
+            
         ]
     });
     peer.ontrack = handleTrackEvent;

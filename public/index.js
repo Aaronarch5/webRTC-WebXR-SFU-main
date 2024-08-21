@@ -18,6 +18,7 @@ async function init(deviceId = null) {
         stream.getTracks().forEach(track => peer.addTrack(track, stream));
     } catch (error) {
         console.error('Error accessing media devices.', error);
+        alert('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
     }
 }
 
@@ -25,12 +26,35 @@ async function init(deviceId = null) {
 function createPeer() {
     const peer = new RTCPeerConnection({
         iceServers: [
+            { urls: "stun:stun.stunprotocol.org" },
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls:"stun:stun.relay.metered.ca:80"},
+            {   urls:"turn:global.relay.metered.ca:80",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
             {
-                urls: "stun:stun.stunprotocol.org"
+                urls:"turn:global.relay.metered.ca:80?transport=tcp",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
+            {
+                urls:"turn:global.relay.metered.ca:443",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
+            {urls:"turns:global.relay.metered.ca:443?transport=tcp",
+                username:"a983dce89aeea887f64b69b7",
+                credential:"Y5NP897GSYJxs6RV"},
+            {
+                urls: "turn:aaronarch1.metered.live",  // URL del servidor TURN
+                username: "a983dce89aeea887f64b69b7",  // Tu nombre de usuario del servidor TURN
+                credential: "Y5NP897GSYJxs6RV"  // Tu contraseña del servidor TURN
             }
+
+            
         ]
     });
     peer.onnegotiationneeded = () => handleNegotiationNeededEvent(peer);
+    peer.onicecandidate = handleICECandidateEvent;
+    peer.oniceconnectionstatechange = handleICEConnectionStateChangeEvent;
     return peer;
 }
 
@@ -48,6 +72,28 @@ async function handleNegotiationNeededEvent(peer) {
         await peer.setRemoteDescription(desc);
     } catch (error) {
         console.error('Error during negotiation.', error);
+        setTimeout(() => {
+            handleNegotiationNeededEvent(peer);  // Retry if negotiation fails
+        }, 1000);  // Adjust the retry interval as needed
+    }
+}
+
+// This function handles ICE candidate events
+function handleICECandidateEvent(event) {
+    if (event.candidate) {
+        const payload = {
+            candidate: event.candidate
+        };
+        axios.post('/ice-candidate', payload).catch(console.error);
+    }
+}
+
+// This function monitors the ICE connection state
+function handleICEConnectionStateChangeEvent(event) {
+    const peer = event.target;
+    if (peer.iceConnectionState === 'failed' || peer.iceConnectionState === 'disconnected' || peer.iceConnectionState === 'closed') {
+        console.error('ICE connection failed or disconnected.');
+        // Implement reconnection logic or notify the user
     }
 }
 
