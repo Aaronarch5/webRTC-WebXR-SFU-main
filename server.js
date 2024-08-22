@@ -1,10 +1,17 @@
 const express = require('express');
-const app = express();
+const dotenv = require('dotenv').config();
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
 const bodyParser = require('body-parser');
 const webrtc = require('wrtc');
-const https = require('https')
+
 // Initialize the senderStream variable
 let senderStream;
+
+// Create Express app
+const app = express();
+const port = process.env.PORT || 433;
 
 // Middleware
 app.use(express.static('public'));
@@ -21,15 +28,18 @@ app.post('/consumer', async (req, res) => {
     try {
         const peer = new webrtc.RTCPeerConnection({ iceServers });
 
+        // Set remote description
         const desc = new webrtc.RTCSessionDescription(req.body.sdp);
         await peer.setRemoteDescription(desc);
 
+        // Add sender stream tracks if available
         if (senderStream) {
             senderStream.getTracks().forEach(track => peer.addTrack(track, senderStream));
         } else {
             console.error('Sender stream not initialized.');
         }
 
+        // Create and set local description
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
 
@@ -45,11 +55,14 @@ app.post('/broadcast', async (req, res) => {
     try {
         const peer = new webrtc.RTCPeerConnection({ iceServers });
 
-        peer.ontrack = (e) => handleTrackEvent(e, peer);
+        // Handle incoming tracks
+        peer.ontrack = (e) => handleTrackEvent(e);
 
+        // Set remote description
         const desc = new webrtc.RTCSessionDescription(req.body.sdp);
         await peer.setRemoteDescription(desc);
 
+        // Create and set local description
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
 
@@ -61,12 +74,20 @@ app.post('/broadcast', async (req, res) => {
 });
 
 // Function to handle incoming tracks
-function handleTrackEvent(e, peer) {
+function handleTrackEvent(e) {
     senderStream = e.streams[0];
 }
 
+// Read SSL certificate and key files
+const options = {
+    key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'localhost.pem')),
+};
+
+// Create HTTPS server
+const server = https.createServer(options, app);
+
 // Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server started on port ${PORT}`);
+server.listen(port, () => {
+    console.log(`Server started on https://localhost:${port}`);
 });
