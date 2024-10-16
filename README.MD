@@ -6,6 +6,6 @@ then
 
 `node server.js`
 
-For broadcaster screen: http://localhost:5000/
+For broadcaster screen: https://localhost:433/
 
-For viewer screen: http://localhost:5000/viewer.html
+For viewer screen: https://localhost:433/viewer.html
