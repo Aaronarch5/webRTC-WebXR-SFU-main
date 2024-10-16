@@ -2,7 +2,13 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.117.1/build/three.m
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/controls/OrbitControls.js';
 import { XRControllerModelFactory } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/webxr/XRControllerModelFactory.js';
 import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/webxr/ARButton.js';
-
+// Variables for cube position
+let isSqueezing = false;
+let grabbedObject = null; // Variable to store the grabbed object (cube)
+let offset = new THREE.Vector3(); // To track offset between controller and object
+let currentGrip = null; // Store the current controller grip being used
+// Variables for cube position and tracking
+let controllerGrip=null;
 window.onload = () => {
     document.getElementById('my-button').onclick = () => {
         init();
@@ -160,10 +166,14 @@ function createSceneWithVideoTexture(video) {
 
     controller1.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
     controller1.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
+    controller1.addEventListener('squeezestart', (event) => onSqueezeStart(event, 'left'));
+    controller1.addEventListener('squeezeend', (event) => onSqueezeEnd(event, 'left'));
     scene.add(controller1);
 
     controller2.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
     controller2.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
+    controller2.addEventListener('squeezestart', (event) => onSqueezeStart(event, 'right'));
+    controller2.addEventListener('squeezeend', (event) => onSqueezeEnd(event, 'right'));
     scene.add(controller2);
 
     const controllerModelFactory = new XRControllerModelFactory();
@@ -186,19 +196,105 @@ function createSceneWithVideoTexture(video) {
         if (scale < 0.1) scale = 0.1; // Prevent scale from going negative or zero
         cube.scale.set(scale, scale, scale); // Apply scaling
     }
+    
 
     function onSelectEnd(event, hand) {
         // Optionally handle the end of the trigger press
     }
+
+
+    function onSqueezeStart(controllerGrip) {
+        console.log("Squeeze started");
+        // Extract the position from the controller's matrixWorld
+        let controller1Position = new THREE.Vector3();
+        let cubeSqueezePosition = new THREE.Vector3();
+        let controllerToCubeDist = new THREE.Vector3();
+        let cubeNewPos = new THREE.Vector3();
+
+        controller1Position = controllerGrip1.position;
+        cubeSqueezePosition = cube.position;
+        controllerToCubeDist = controller1Position.distanceTo(cubeSqueezePosition);
+        cubeNewPos.copy(controller1Position);
+        
+        cube.position.copy(cubeNewPos).add;
+
+
+
+        console.log(controller1Position);
+        console.log(cubeSqueezePosition);
+        console.log(controllerToCubeDist);
+        console.log(cubeNewPos);
+
+
+        
+    }
+
+    function onSqueeze(controllerGrip){
+                // Extract the position from the controller's matrixWorld
+        let controller1Position = new THREE.Vector3();
+        let cubeSqueezePosition = new THREE.Vector3();
+        let controllerToCubeDist = new THREE.Vector3();
+        let cubeNewPos = new THREE.Vector3();
+
+        controller1Position = controllerGrip1.position;
+        cubeSqueezePosition = cube.position;
+        controllerToCubeDist = controller1Position.distanceTo(cubeSqueezePosition);
+        cubeNewPos.copy(controller1Position);
+        
+        cube.position.copy(cubeNewPos).add;
+
+
+
+        console.log(controller1Position);
+        console.log(cubeSqueezePosition);
+        console.log(controllerToCubeDist);
+        console.log(cubeNewPos);
+
+    }
+    
+    function onSqueezeEnd(controllerGrip) {
+        console.log("Squeeze ended");
+        // Release the cube when the squeeze ends
+        grabbedObject = null;
+        currentGrip = null;
+    }
+   
+
+    
 
     // Render the scene
     function animate() {
         renderer.setAnimationLoop(render);
     }
 
+
     function render() {
+        if (grabbedObject && currentGrip) 
+        {
+            console.log("Moving cube");
+           
+           /*
+            // Get the position and rotation from the controller's grip matrix
+            const controllerMatrix = currentGrip.matrixWorld;
+    
+            // Extract the position from the matrix
+            const controllerPosition = new THREE.Vector3();
+            controllerPosition.setFromMatrixPosition(controllerMatrix);
+            
+            // Update the grabbed object's position based on the controller's movement
+            grabbedObject.position.copy(controllerPosition).add(offset); // Add offset
+    
+            // Extract and apply the rotation from the matrix
+            const controllerRotation = new THREE.Quaternion();
+            controllerRotation.setFromRotationMatrix(controllerMatrix);
+            grabbedObject.setRotationFromQuaternion(controllerRotation); // Apply rotation
+            */
+            
+        }
+
         controls.update();  // Update controls
         renderer.render(scene, camera);
+
     }
 
     animate();
