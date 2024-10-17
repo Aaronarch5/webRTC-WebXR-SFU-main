@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.117.1/build/three.m
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/controls/OrbitControls.js';
 import { XRControllerModelFactory } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/webxr/XRControllerModelFactory.js';
 import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/webxr/ARButton.js';
+
 // Variables for cube position
 let isSqueezing = false;
 let grabbedObject = null; // Variable to store the grabbed object (cube)
@@ -14,7 +15,6 @@ window.onload = () => {
         init();
     };
 }
-
 async function init() {
     const peer = createPeer();
     peer.addTransceiver("video", { direction: "recvonly" });
@@ -186,6 +186,35 @@ function createSceneWithVideoTexture(video) {
     controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
     scene.add(controllerGrip2);
 
+
+    function handleGamepadInput(controller, hand) {
+        console.log(controller);
+        const inputSource = controller.inputSource;
+
+
+        if (inputSource && inputSource.gamepad) {
+          const gamepad = inputSource.gamepad;
+      
+          // Check joystick axes (usually on index 0 and 1)
+          const joystickX = gamepad.axes[0];  // Left/Right
+          const joystickY = gamepad.axes[1];  // Up/Down
+          console.log(`${hand} joystick - X: ${joystickX}, Y: ${joystickY}`);
+      
+          // Check buttons (X/Y and other buttons can be indexed based on the gamepad spec)
+          const xButton = gamepad.buttons[3];  // X button
+          const yButton = gamepad.buttons[4];  // Y button
+      
+          if (xButton.pressed) {
+            console.log(`${hand} X button pressed`);
+            // Handle X button press logic
+          }
+          if (yButton.pressed) {
+            console.log(`${hand} Y button pressed`);
+            // Handle Y button press logic
+          }
+        }
+      }
+      
     function onSelectStart(event, hand) {
         // Start scaling on trigger press
         if (hand === 'left') {
@@ -202,53 +231,59 @@ function createSceneWithVideoTexture(video) {
         // Optionally handle the end of the trigger press
     }
 
+    function conjugateQuaternion(quaternion) {
+        return new THREE.Quaternion(
+            -quaternion.x,  // Negate x
+            -quaternion.y,  // Negate y
+            -quaternion.z,  // Negate z
+             quaternion.w   // Keep w the same
+        );
+    }
 
-    function onSqueezeStart(controllerGrip) {
+    function onSqueezeStart(controllerGrip,hand) {
+
+        let visorRotation = new THREE.Quaternion();
+
+        // Get the camera's current rotation
+        visorRotation.copy(camera.quaternion);
+        
+        // Manually conjugate the quaternion to face the cube towards the camera
+        let invertedRotation = conjugateQuaternion(visorRotation);
+        
+        // Apply the inverted rotation to the cube
+        cube.quaternion.copy(invertedRotation);
+        
+
         console.log("Squeeze started");
         // Extract the position from the controller's matrixWorld
         let controller1Position = new THREE.Vector3();
+        let controller2Position = new THREE.Vector3();
+               
         let cubeSqueezePosition = new THREE.Vector3();
         let controllerToCubeDist = new THREE.Vector3();
+        let controlleToCubeDist2 = new THREE.Vector3();
         let cubeNewPos = new THREE.Vector3();
 
         controller1Position = controllerGrip1.position;
+        controller2Position = controllerGrip2.position;
         cubeSqueezePosition = cube.position;
         controllerToCubeDist = controller1Position.distanceTo(cubeSqueezePosition);
-        cubeNewPos.copy(controller1Position);
-        
+       
+        if (hand === 'left') {
+            cubeNewPos.copy(controller1Position);
+        } else if (hand === 'right') {
+            cubeNewPos.copy(controller2Position);
+        }
+
         cube.position.copy(cubeNewPos).add;
-
-
-
-        console.log(controller1Position);
-        console.log(cubeSqueezePosition);
-        console.log(controllerToCubeDist);
-        console.log(cubeNewPos);
-
-
-        
+       // console.log(controller1Position);
+        //console.log(controller2Position);
+        //console.log(cubeSqueezePosition);
+        //console.log(controllerToCubeDist);
+        //console.log(cubeNewPos);        
     }
 
     function onSqueeze(controllerGrip){
-                // Extract the position from the controller's matrixWorld
-        let controller1Position = new THREE.Vector3();
-        let cubeSqueezePosition = new THREE.Vector3();
-        let controllerToCubeDist = new THREE.Vector3();
-        let cubeNewPos = new THREE.Vector3();
-
-        controller1Position = controllerGrip1.position;
-        cubeSqueezePosition = cube.position;
-        controllerToCubeDist = controller1Position.distanceTo(cubeSqueezePosition);
-        cubeNewPos.copy(controller1Position);
-        
-        cube.position.copy(cubeNewPos).add;
-
-
-
-        console.log(controller1Position);
-        console.log(cubeSqueezePosition);
-        console.log(controllerToCubeDist);
-        console.log(cubeNewPos);
 
     }
     
@@ -268,29 +303,8 @@ function createSceneWithVideoTexture(video) {
     }
 
 
-    function render() {
-        if (grabbedObject && currentGrip) 
-        {
-            console.log("Moving cube");
-           
-           /*
-            // Get the position and rotation from the controller's grip matrix
-            const controllerMatrix = currentGrip.matrixWorld;
-    
-            // Extract the position from the matrix
-            const controllerPosition = new THREE.Vector3();
-            controllerPosition.setFromMatrixPosition(controllerMatrix);
-            
-            // Update the grabbed object's position based on the controller's movement
-            grabbedObject.position.copy(controllerPosition).add(offset); // Add offset
-    
-            // Extract and apply the rotation from the matrix
-            const controllerRotation = new THREE.Quaternion();
-            controllerRotation.setFromRotationMatrix(controllerMatrix);
-            grabbedObject.setRotationFromQuaternion(controllerRotation); // Apply rotation
-            */
-            
-        }
+    function render(frame) {
+
 
         controls.update();  // Update controls
         renderer.render(scene, camera);
