@@ -1,3 +1,14 @@
+import {WebXRButton} from './js/util/webxr-button.js';
+import {Scene} from './js/render/scenes/scene.js';
+import {Renderer, createWebGLContext} from './js/render/core/renderer.js';
+import {Node} from './js/render/core/node.js';
+import {Gltf2Node} from './js/render/nodes/gltf2.js';
+import {SkyboxNode} from './js/render/nodes/skybox.js';
+import {BoxBuilder} from './js/render/geometry/box-builder.js';
+import {PbrMaterial} from './js/render/materials/pbr.js';
+import {mat4, vec3, quat} from './js/render/math/gl-matrix.js';
+import {InlineViewerHelper} from './js/util/inline-viewer-helper.js';
+import {QueryArgs} from './js/util/query-args.js';
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.117.1/build/three.module.js';
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/controls/OrbitControls.js';
 import { XRControllerModelFactory } from 'https://cdn.jsdelivr.net/npm/three@0.117.1/examples/jsm/webxr/XRControllerModelFactory.js';
@@ -8,13 +19,15 @@ let isSqueezing = false;
 let grabbedObject = null; // Variable to store the grabbed object (cube)
 let offset = new THREE.Vector3(); // To track offset between controller and object
 let currentGrip = null; // Store the current controller grip being used
-// Variables for cube position and tracking
-let controllerGrip=null;
+let controllerGrip = null; // Track controller grip
+let cube; // Define cube here to access globally
+
 window.onload = () => {
     document.getElementById('my-button').onclick = () => {
         init();
     };
 }
+
 async function init() {
     const peer = createPeer();
     peer.addTransceiver("video", { direction: "recvonly" });
@@ -28,27 +41,11 @@ function createPeer() {
             { urls: "stun:stun.stunprotocol.org" },
             { urls: "stun:stun.l.google.com:19302" },
             { urls:"stun:stun.relay.metered.ca:80"},
-            {   urls:"turn:global.relay.metered.ca:80",
-                username:"a983dce89aeea887f64b69b7",
-                credential:"Y5NP897GSYJxs6RV"},
             {
-                urls:"turn:global.relay.metered.ca:80?transport=tcp",
+                urls:"turn:global.relay.metered.ca:80",
                 username:"a983dce89aeea887f64b69b7",
-                credential:"Y5NP897GSYJxs6RV"},
-            {
-                urls:"turn:global.relay.metered.ca:443",
-                username:"a983dce89aeea887f64b69b7",
-                credential:"Y5NP897GSYJxs6RV"},
-            {urls:"turns:global.relay.metered.ca:443?transport=tcp",
-                username:"a983dce89aeea887f64b69b7",
-                credential:"Y5NP897GSYJxs6RV"},
-            {
-                urls: "turn:aaronarch1.metered.live",  // URL del servidor TURN
-                username: "a983dce89aeea887f64b69b7",  // Tu nombre de usuario del servidor TURN
-                credential: "Y5NP897GSYJxs6RV"  // Tu contraseña del servidor TURN
+                credential:"Y5NP897GSYJxs6RV"
             }
-
-            
         ]
     });
     peer.ontrack = handleTrackEvent;
@@ -79,7 +76,6 @@ function handleTrackEvent(e) {
 }
 
 function createSceneWithVideoTexture(video) {
-    // Set up Three.js scene
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -87,97 +83,57 @@ function createSceneWithVideoTexture(video) {
     renderer.xr.enabled = true; // Enable WebXR
     document.body.appendChild(renderer.domElement);
 
-    // Create custom ARButton
     const arButton = ARButton.createButton(renderer, { optionalFeatures: ['local-floor', 'bounded-floor'] });
     document.body.appendChild(arButton);
 
-    // Apply custom styles to the ARButton
-    const arButtonStyle = document.createElement('style');
-    arButtonStyle.innerHTML = `
-        #ARButton {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            padding: 10px 20px;
-            background: #000000;
-            color: #ffffff;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 1000;
-        }
-        #ARButton:hover {
-            background: #333333;
-        }
-        #ARButton:active {
-            background: #555555;
-        }
-    `;
-    document.head.appendChild(arButtonStyle);
-
-    // Create a video texture from the video element
     const videoTexture = new THREE.VideoTexture(video);
-
-    // Create a material for the front face using the video texture
     const frontMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-
-    // Create materials for the other faces
     const otherMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-
-    // Create an array of materials for each face of the cube
     const materials = [
-        otherMaterial, // right face
-        otherMaterial, // left face
-        otherMaterial, // top face
-        otherMaterial, // bottom face
-        frontMaterial, // front face (video texture)
-        otherMaterial  // back face
+        otherMaterial, otherMaterial, otherMaterial, otherMaterial, frontMaterial, otherMaterial
     ];
 
-    // Create a cube geometry and apply the materials
     let geometry = new THREE.BoxGeometry(4, 2, 0.1);
-    const cube = new THREE.Mesh(geometry, materials);
+    cube = new THREE.Mesh(geometry, materials);
     scene.add(cube);
     cube.position.set(0, 0, -1.5);
 
-    // Position the camera
     camera.position.set(2, 2, 2);
     camera.lookAt(0, 0, 0);
 
-    // Set up OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableZoom = true;  // Allow zooming
-    controls.enablePan = false;  // Disable panning
+    controls.enableZoom = true;
+    controls.enablePan = false;
 
-    // Handle window resize
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Setup WebXR controllers
-    const controller1 = renderer.xr.getController(0); // Left controller
-    const controller2 = renderer.xr.getController(1); // Right controller
+
+
+    const controller1 = renderer.xr.getController(0);
+    const controller2 = renderer.xr.getController(1);
+    const session = renderer.xr.getSession();
+
 
     let scale = 1.0;
-    const scaleFactor = 0.1; // Amount of scaling per trigger press
+    const scaleFactor = 0.1;
 
-    controller1.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
-    controller1.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
-    controller1.addEventListener('squeezestart', (event) => onSqueezeStart(event, 'left'));
-    controller1.addEventListener('squeezeend', (event) => onSqueezeEnd(event, 'left'));
-    scene.add(controller1);
+    controller1.addEventListener('selectstart', () => {
+        scale += scaleFactor;
+        if (scale < 0.1) scale = 0.1;
+        cube.scale.set(scale, scale, scale);
+    });
 
-    controller2.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
-    controller2.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
-    controller2.addEventListener('squeezestart', (event) => onSqueezeStart(event, 'right'));
-    controller2.addEventListener('squeezeend', (event) => onSqueezeEnd(event, 'right'));
-    scene.add(controller2);
+    controller2.addEventListener('selectstart', () => {
+        scale -= scaleFactor;
+        if (scale < 0.1) scale = 0.1;
+        cube.scale.set(scale, scale, scale);
+    });
 
     const controllerModelFactory = new XRControllerModelFactory();
-
     const controllerGrip1 = renderer.xr.getControllerGrip(0);
     controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
     scene.add(controllerGrip1);
@@ -186,129 +142,48 @@ function createSceneWithVideoTexture(video) {
     controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
     scene.add(controllerGrip2);
 
-
-    function handleGamepadInput(controller, hand) {
-        console.log(controller);
-        const inputSource = controller.inputSource;
-
-
-        if (inputSource && inputSource.gamepad) {
-          const gamepad = inputSource.gamepad;
-      
-          // Check joystick axes (usually on index 0 and 1)
-          const joystickX = gamepad.axes[0];  // Left/Right
-          const joystickY = gamepad.axes[1];  // Up/Down
-          console.log(`${hand} joystick - X: ${joystickX}, Y: ${joystickY}`);
-      
-          // Check buttons (X/Y and other buttons can be indexed based on the gamepad spec)
-          const xButton = gamepad.buttons[3];  // X button
-          const yButton = gamepad.buttons[4];  // Y button
-      
-          if (xButton.pressed) {
-            console.log(`${hand} X button pressed`);
-            // Handle X button press logic
-          }
-          if (yButton.pressed) {
-            console.log(`${hand} Y button pressed`);
-            // Handle Y button press logic
-          }
-        }
-      }
-      
-    function onSelectStart(event, hand) {
-        // Start scaling on trigger press
-        if (hand === 'left') {
-            scale += scaleFactor;
-        } else if (hand === 'right') {
-            scale -= scaleFactor;
-        }
-        if (scale < 0.1) scale = 0.1; // Prevent scale from going negative or zero
-        cube.scale.set(scale, scale, scale); // Apply scaling
-    }
-    
-
-    function onSelectEnd(event, hand) {
-        // Optionally handle the end of the trigger press
-    }
-
-    function conjugateQuaternion(quaternion) {
-        return new THREE.Quaternion(
-            -quaternion.x,  // Negate x
-            -quaternion.y,  // Negate y
-            -quaternion.z,  // Negate z
-             quaternion.w   // Keep w the same
-        );
-    }
-
-    function onSqueezeStart(controllerGrip,hand) {
-
-        let visorRotation = new THREE.Quaternion();
-
-        // Get the camera's current rotation
-        visorRotation.copy(camera.quaternion);
-        
-        // Manually conjugate the quaternion to face the cube towards the camera
-        let invertedRotation = conjugateQuaternion(visorRotation);
-        
-        // Apply the inverted rotation to the cube
-        cube.quaternion.copy(invertedRotation);
-        
-
-        console.log("Squeeze started");
-        // Extract the position from the controller's matrixWorld
-        let controller1Position = new THREE.Vector3();
-        let controller2Position = new THREE.Vector3();
-               
-        let cubeSqueezePosition = new THREE.Vector3();
-        let controllerToCubeDist = new THREE.Vector3();
-        let controlleToCubeDist2 = new THREE.Vector3();
-        let cubeNewPos = new THREE.Vector3();
-
-        controller1Position = controllerGrip1.position;
-        controller2Position = controllerGrip2.position;
-        cubeSqueezePosition = cube.position;
-        controllerToCubeDist = controller1Position.distanceTo(cubeSqueezePosition);
-       
-        if (hand === 'left') {
-            cubeNewPos.copy(controller1Position);
-        } else if (hand === 'right') {
-            cubeNewPos.copy(controller2Position);
-        }
-
-        cube.position.copy(cubeNewPos).add;
-       // console.log(controller1Position);
-        //console.log(controller2Position);
-        //console.log(cubeSqueezePosition);
-        //console.log(controllerToCubeDist);
-        //console.log(cubeNewPos);        
-    }
-
-    function onSqueeze(controllerGrip){
-
-    }
-    
-    function onSqueezeEnd(controllerGrip) {
-        console.log("Squeeze ended");
-        // Release the cube when the squeeze ends
-        grabbedObject = null;
-        currentGrip = null;
-    }
-   
-
-    
-
-    // Render the scene
     function animate() {
         renderer.setAnimationLoop(render);
     }
 
-
     function render(frame) {
+        
+
+        const session = renderer.xr.getSession();
+        let botones ;
+		if (session) {  //only if we are in a webXR session
+			for (const sourceXR of session.inputSources) {
+                let botones = sourceXR.gamepad.buttons ;
+                let joysticks = sourceXR.gamepad.axes;
+                let XJRight = joysticks[2]; //-1.0 to 1.0 
+                let YJRight = joysticks[3]; //-1.0 to 1.0
+
+                
+                
+                    if(botones[4].value===1){
+                        console.log("Boton A Presionado");
+                    }
+                    
+                    if (XJRight>0.5){
+                        console.log(" Joystick X derecho");
+                    }
+
+                    if (YJRight>0.5){
+                        console.log(" Joystick Y derecho");
+                    }
 
 
-        controls.update();  // Update controls
+                    if(botones[5].value===1){
+                        console.log("Boton B Presionado");
+                    }
+                   
+
+				   
+            }
+        }
+
+        controls.update();
         renderer.render(scene, camera);
-
     }
 
     animate();
